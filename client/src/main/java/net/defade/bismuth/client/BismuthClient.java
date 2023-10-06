@@ -24,7 +24,7 @@ public class BismuthClient {
 
     public void connect() throws IOException {
         SocketChannel socket = SocketChannel.open(new InetSocketAddress(host, port));
-        connection = new Connection(socket);
+        connection = new Connection(selector, socket);
 
         socket.configureBlocking(false);
         socket.socket().setTcpNoDelay(true);

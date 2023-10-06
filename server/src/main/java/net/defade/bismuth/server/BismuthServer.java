@@ -41,7 +41,7 @@ public class BismuthServer {
                         try {
                             if (selectionKey.isAcceptable()) {
                                 SocketChannel socketChannel = serverSocketChannel.accept();
-                                connectionMap.put(socketChannel, new Connection(socketChannel));
+                                connectionMap.put(socketChannel, new Connection(selector, socketChannel));
 
                                 socketChannel.configureBlocking(false);
                                 socketChannel.socket().setTcpNoDelay(true);
@@ -61,6 +61,8 @@ public class BismuthServer {
                     exception.printStackTrace();
                     // TODO log correctly
                 }
+
+                connectionMap.values().removeIf(connection -> !connection.isConnected());
             }
         });
     }
