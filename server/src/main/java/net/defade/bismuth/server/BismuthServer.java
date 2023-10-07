@@ -1,6 +1,7 @@
 package net.defade.bismuth.server;
 
 import net.defade.bismuth.core.Connection;
+import net.defade.bismuth.core.packet.PacketFlow;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
@@ -41,7 +42,7 @@ public class BismuthServer {
                         try {
                             if (selectionKey.isAcceptable()) {
                                 SocketChannel socketChannel = serverSocketChannel.accept();
-                                connectionMap.put(socketChannel, new Connection(selector, socketChannel));
+                                connectionMap.put(socketChannel, new Connection(selector, socketChannel, PacketFlow.CLIENT_BOUND, null)); // TODO get handler for client's protocol
 
                                 socketChannel.configureBlocking(false);
                                 socketChannel.socket().setTcpNoDelay(true);
