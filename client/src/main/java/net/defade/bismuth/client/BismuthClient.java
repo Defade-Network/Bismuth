@@ -32,6 +32,29 @@ abstract class BismuthClient extends PacketHandler {
         socket.socket().setTcpNoDelay(true);
 
         socket.register(selector, SelectionKey.OP_READ);
+
+        Thread.ofVirtual().name("Bismuth Client Thread").start(() -> {
+            while (connection != null) {
+                try {
+                    selector.select(selectionKey -> {
+                        try {
+                            if (selectionKey.isReadable()) {
+                                if(!connection.readChannel()) {
+                                    connection = null;
+                                }
+                            }
+                        } catch (IOException exception) {
+                            exception.printStackTrace();
+                            connection.disconnect();
+                            // TODO log correctly
+                        }
+                    });
+                } catch (IOException exception) {
+                    exception.printStackTrace();
+                    // TODO log correctly
+                }
+            }
+        });
     }
 
     public final void disconnect() {

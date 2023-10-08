@@ -28,7 +28,7 @@ public class PacketSet<T extends PacketHandler> {
      * @return this packet set for chaining
      */
     public PacketSet<T> addPacket(Class<? extends Packet<T>> packetClass, Function<ByteBuffer, Packet<T>> deserializer) {
-        int id = packetDeserializers.size() + 1;
+        int id = packetDeserializers.size();
 
         packetClassToId.put(packetClass, id);
         packetDeserializers.add(deserializer);

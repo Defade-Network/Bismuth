@@ -51,10 +51,18 @@ public class BismuthServer {
                             }
 
                             if (selectionKey.isReadable()) {
-                                connectionMap.get((SocketChannel) selectionKey.channel()).readChannel();
+                                Connection connection = connectionMap.get((SocketChannel) selectionKey.channel());
+                                if(!connection.readChannel()) {
+                                    connectionMap.remove((SocketChannel) selectionKey.channel());
+                                }
                             }
                         } catch (IOException exception) {
                             exception.printStackTrace();
+                            Connection connection = connectionMap.get((SocketChannel) selectionKey.channel());
+                            if (connection != null) {
+                                connection.disconnect();
+                            }
+
                             // TODO log correctly
                         }
                     });
@@ -62,8 +70,6 @@ public class BismuthServer {
                     exception.printStackTrace();
                     // TODO log correctly
                 }
-
-                connectionMap.values().removeIf(connection -> !connection.isConnected());
             }
         });
     }
