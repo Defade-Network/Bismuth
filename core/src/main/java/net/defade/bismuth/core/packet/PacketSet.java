@@ -1,12 +1,12 @@
 package net.defade.bismuth.core.packet;
 
+import net.defade.bismuth.core.BismuthByteBuffer;
 import net.defade.bismuth.core.packet.handlers.PacketHandler;
-import java.nio.ByteBuffer;
+import net.defade.bismuth.core.utils.PacketDeserializer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * A set of packets with their IDs and deserializers for a given protocol and packet flow.
@@ -14,7 +14,7 @@ import java.util.function.Function;
  */
 public class PacketSet<T extends PacketHandler> {
     private final Class<T> packetHandlerClass; // Handler for this packet set
-    private final List<Function<ByteBuffer, Packet<T>>> packetDeserializers = new ArrayList<>(); // Deserializers for this packet set
+    private final List<PacketDeserializer<T>> packetDeserializers = new ArrayList<>(); // Deserializers for this packet set
     private final Map<Class<? extends Packet<T>>, Integer> packetClassToId = new HashMap<>(); // Map of packet classes to their IDs
 
     public PacketSet(Class<T> packetHandlerClass) {
@@ -27,7 +27,7 @@ public class PacketSet<T extends PacketHandler> {
      * @param deserializer the packet deserializer
      * @return this packet set for chaining
      */
-    public PacketSet<T> addPacket(Class<? extends Packet<T>> packetClass, Function<ByteBuffer, Packet<T>> deserializer) {
+    public PacketSet<T> addPacket(Class<? extends Packet<T>> packetClass, PacketDeserializer<T> deserializer) {
         int id = packetDeserializers.size();
 
         packetClassToId.put(packetClass, id);
@@ -50,12 +50,13 @@ public class PacketSet<T extends PacketHandler> {
      * @param id the id of the packet to deserialize
      * @param byteBuffer the byte buffer to deserialize the packet from
      * @return the deserialized packet or null if the packet id is invalid for this set
+     * @throws Throwable if an error occurs while deserializing the packet
      */
-    public Packet<T> createPacket(int id, ByteBuffer byteBuffer) {
+    public Packet<T> createPacket(int id, BismuthByteBuffer byteBuffer) throws Throwable {
         if(id < 0 || id > packetDeserializers.size()) return null;
 
-        Function<ByteBuffer, Packet<T>> deserializer = packetDeserializers.get(id);
-        return deserializer != null ? deserializer.apply(byteBuffer) : null;
+        PacketDeserializer<T> deserializer = packetDeserializers.get(id);
+        return deserializer != null ? deserializer.deserialize(byteBuffer) : null;
     }
 
     /**

@@ -1,10 +1,78 @@
 package net.defade.bismuth.core.packet.handlers.serverbound;
 
+import net.defade.bismuth.core.BismuthProtocol;
+import net.defade.bismuth.core.Connection;
+import net.defade.bismuth.core.packet.client.login.ClientLoginPasswordValidationPacket;
+import net.defade.bismuth.core.packet.client.login.ClientLoginRSAKeyPacket;
 import net.defade.bismuth.core.packet.handlers.PacketHandler;
+import net.defade.bismuth.core.packet.server.login.ServerLoginAESKeyPacket;
+import net.defade.bismuth.core.packet.server.login.ServerLoginPasswordPacket;
+import net.defade.bismuth.core.packet.server.login.ServerLoginRequestedProtocolPacket;
+import net.defade.bismuth.core.utils.CryptoUtils;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.function.Function;
 
 public class ServerLoginPacketHandler extends PacketHandler {
+    private static KeyPair rsaKey;
+
+    private final Function<BismuthProtocol, PacketHandler> protocolToPacketHandler;
+    private final Connection connection;
+    private final byte[] hashedPassword;
+
+    public ServerLoginPacketHandler(Function<BismuthProtocol, PacketHandler> protocolToPacketHandler, Connection connection, byte[] hashedPassword) {
+        this.protocolToPacketHandler = protocolToPacketHandler;
+        this.connection = connection;
+        this.hashedPassword = hashedPassword;
+
+        if(rsaKey == null) {
+            try {
+                rsaKey = CryptoUtils.generateRSAKey();
+            } catch (NoSuchAlgorithmException exception) {
+                exception.printStackTrace(); // TODO log correctly
+                connection.disconnect();
+            }
+        }
+    }
+
+    @Override
+    public void onActivate() {
+        connection.sendPacket(new ClientLoginRSAKeyPacket(rsaKey.getPublic()));
+    }
+
     @Override
     public void onDisconnect() {
 
+    }
+
+    public void handleAESKey(ServerLoginAESKeyPacket serverLoginAESKeyPacket) throws NoSuchAlgorithmException,
+            NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
+        byte[] decryptedAESKey = CryptoUtils.decryptRSA(rsaKey.getPrivate(), serverLoginAESKeyPacket.encryptedAESKey());
+        SecretKey aesKey = new SecretKeySpec(decryptedAESKey, "AES");
+
+        connection.setupEncryption(aesKey);
+    }
+
+    public void handlePassword(ServerLoginPasswordPacket serverLoginPasswordPacket) throws NoSuchAlgorithmException {
+        byte[] providedHashedPassword = CryptoUtils.hashSHA256(serverLoginPasswordPacket.password());
+
+        if(Arrays.equals(providedHashedPassword, hashedPassword)) {
+            connection.sendPacket(new ClientLoginPasswordValidationPacket(true));
+        } else {
+            connection.sendPacket(new ClientLoginPasswordValidationPacket(false));
+            connection.disconnect();
+        }
+    }
+
+    public void handleRequestedProtocol(ServerLoginRequestedProtocolPacket serverLoginRequestedProtocolPacket) {
+        PacketHandler packetHandler = protocolToPacketHandler.apply(serverLoginRequestedProtocolPacket.requestedProtocol());
+        connection.setPacketHandler(packetHandler);
     }
 }

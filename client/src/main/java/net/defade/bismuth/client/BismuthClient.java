@@ -4,6 +4,7 @@ import net.defade.bismuth.core.Connection;
 import net.defade.bismuth.core.packet.Packet;
 import net.defade.bismuth.core.packet.PacketFlow;
 import net.defade.bismuth.core.packet.handlers.PacketHandler;
+import net.defade.bismuth.core.packet.handlers.clientbound.ClientLoginPacketHandler;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
@@ -13,20 +14,24 @@ import java.nio.channels.SocketChannel;
 abstract class BismuthClient extends PacketHandler {
     private final String host;
     private final int port;
+    private final byte[] password;
 
     private final Selector selector;
 
     private Connection connection;
 
-    public BismuthClient(String host, int port) throws IOException {
+    public BismuthClient(String host, int port, byte[] password) throws IOException {
         this.host = host;
         this.port = port;
+        this.password = password;
+
         this.selector = Selector.open();
     }
 
     public final void connect() throws IOException {
         SocketChannel socket = SocketChannel.open(new InetSocketAddress(host, port));
-        connection = new Connection(selector, socket, PacketFlow.SERVER_BOUND, this);
+        connection = new Connection(selector, socket, PacketFlow.SERVER_BOUND);
+        connection.setPacketHandler(new ClientLoginPacketHandler(this, connection, password));
 
         socket.configureBlocking(false);
         socket.socket().setTcpNoDelay(true);

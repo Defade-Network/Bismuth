@@ -3,13 +3,30 @@ package net.defade.bismuth.core;
 import net.defade.bismuth.core.packet.Packet;
 import net.defade.bismuth.core.packet.PacketFlow;
 import net.defade.bismuth.core.packet.PacketSet;
+import net.defade.bismuth.core.packet.client.login.ClientLoginPasswordValidationPacket;
+import net.defade.bismuth.core.packet.client.login.ClientLoginRSAKeyPacket;
 import net.defade.bismuth.core.packet.handlers.PacketHandler;
-import java.nio.ByteBuffer;
+import net.defade.bismuth.core.packet.handlers.clientbound.ClientLoginPacketHandler;
+import net.defade.bismuth.core.packet.handlers.serverbound.ServerLoginPacketHandler;
+import net.defade.bismuth.core.packet.server.login.ServerLoginAESKeyPacket;
+import net.defade.bismuth.core.packet.server.login.ServerLoginPasswordPacket;
+import net.defade.bismuth.core.packet.server.login.ServerLoginRequestedProtocolPacket;
 import java.util.HashMap;
 import java.util.Map;
 
 public enum BismuthProtocol {
     LOGIN(protocol()
+            .addFlow(PacketFlow.CLIENT_BOUND, new PacketSet<>(ClientLoginPacketHandler.class)
+                    .addPacket(ClientLoginRSAKeyPacket.class, ClientLoginRSAKeyPacket::new)
+                    .addPacket(ClientLoginPasswordValidationPacket.class, ClientLoginPasswordValidationPacket::new)
+            )
+            .addFlow(PacketFlow.SERVER_BOUND, new PacketSet<>(ServerLoginPacketHandler.class)
+                    .addPacket(ServerLoginAESKeyPacket.class, ServerLoginAESKeyPacket::new)
+                    .addPacket(ServerLoginPasswordPacket.class, ServerLoginPasswordPacket::new)
+                    .addPacket(ServerLoginRequestedProtocolPacket.class, ServerLoginRequestedProtocolPacket::new)
+            )
+    ),
+    YOKURA(protocol()
 
     );
 
@@ -39,8 +56,9 @@ public enum BismuthProtocol {
      * @param packetId The id of the packet to deserialize
      * @param byteBuf The byte buffer to deserialize the packet from
      * @return The deserialized packet or null if the packet is not registered for this protocol
+     * @throws Throwable If an error occurs while deserializing the packet
      */
-    public Packet<? extends PacketHandler> createPacket(PacketFlow flow, int packetId, ByteBuffer byteBuf) {
+    public Packet<? extends PacketHandler> createPacket(PacketFlow flow, int packetId, BismuthByteBuffer byteBuf) throws Throwable {
         return packets.get(flow).createPacket(packetId, byteBuf);
     }
 

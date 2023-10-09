@@ -1,7 +1,10 @@
 package net.defade.bismuth.server;
 
+import net.defade.bismuth.core.BismuthProtocol;
 import net.defade.bismuth.core.Connection;
 import net.defade.bismuth.core.packet.PacketFlow;
+import net.defade.bismuth.core.packet.handlers.PacketHandler;
+import net.defade.bismuth.core.packet.handlers.serverbound.ServerLoginPacketHandler;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
@@ -10,19 +13,25 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 public class BismuthServer {
     private final String host;
     private final int port;
+    private final byte[] hashedPassword;
+    private final PacketHandlerProvider packetHandlerProvider;
 
     private final Selector selector;
     private final Map<SocketChannel, Connection> connectionMap = new HashMap<>();
 
     private boolean isRunning = false;
 
-    public BismuthServer(String host, int port) throws IOException {
+    public BismuthServer(String host, int port, byte[] hashedPassword, PacketHandlerProvider packetHandlerProvider) throws IOException {
         this.host = host;
         this.port = port;
+        this.hashedPassword = hashedPassword;
+        this.packetHandlerProvider = packetHandlerProvider;
+
         this.selector = Selector.open();
     }
 
@@ -42,7 +51,10 @@ public class BismuthServer {
                         try {
                             if (selectionKey.isAcceptable()) {
                                 SocketChannel socketChannel = serverSocketChannel.accept();
-                                connectionMap.put(socketChannel, new Connection(selector, socketChannel, PacketFlow.CLIENT_BOUND, null)); // TODO get handler for client's protocol
+
+                                Connection connection = new Connection(selector, socketChannel, PacketFlow.CLIENT_BOUND);
+                                connection.setPacketHandler(new ServerLoginPacketHandler(packetHandlerProviderToFunction(), connection, hashedPassword));
+                                connectionMap.put(socketChannel, connection);
 
                                 socketChannel.configureBlocking(false);
                                 socketChannel.socket().setTcpNoDelay(true);
@@ -83,5 +95,20 @@ public class BismuthServer {
         }
 
         isRunning = false;
+    }
+
+    /**
+     * Method to get around directly asking for the function,
+     * so users don't have to handle the LOGIN protocol or forget a protocol.
+     * @return A function to get a packet handler for the protocol
+     */
+    private Function<BismuthProtocol, PacketHandler> packetHandlerProviderToFunction() {
+        return protocol -> switch (protocol) {
+            case YOKURA -> packetHandlerProvider.getYokuraPacketHandler();
+
+            default -> {
+                throw new IllegalStateException("Unexpected value: " + protocol);
+            }
+        };
     }
 }
