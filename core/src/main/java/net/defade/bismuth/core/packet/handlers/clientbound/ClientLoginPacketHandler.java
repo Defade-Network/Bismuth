@@ -2,11 +2,13 @@ package net.defade.bismuth.core.packet.handlers.clientbound;
 
 import net.defade.bismuth.core.BismuthProtocol;
 import net.defade.bismuth.core.Connection;
+import net.defade.bismuth.core.exceptions.DisconnectException;
+import net.defade.bismuth.core.exceptions.InvalidPasswordException;
 import net.defade.bismuth.core.packet.client.login.ClientLoginPasswordValidationPacket;
 import net.defade.bismuth.core.packet.client.login.ClientLoginRSAKeyPacket;
 import net.defade.bismuth.core.packet.handlers.PacketHandler;
-import net.defade.bismuth.core.packet.server.login.ServerLoginPasswordPacket;
 import net.defade.bismuth.core.packet.server.login.ServerLoginAESKeyPacket;
+import net.defade.bismuth.core.packet.server.login.ServerLoginPasswordPacket;
 import net.defade.bismuth.core.packet.server.login.ServerLoginRequestedProtocolPacket;
 import net.defade.bismuth.core.utils.CryptoUtils;
 import javax.crypto.BadPaddingException;
@@ -15,8 +17,11 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.CompletableFuture;
 
 public class ClientLoginPacketHandler extends PacketHandler {
+    private final CompletableFuture<Void> connectFuture = new CompletableFuture<>();
+
     private final PacketHandler clientPacketHandler;
     private final Connection connection;
     private final byte[] password;
@@ -29,7 +34,7 @@ public class ClientLoginPacketHandler extends PacketHandler {
 
     @Override
     public void onDisconnect() {
-
+        connectFuture.completeExceptionally(new DisconnectException());
     }
 
     public void handleRSAKey(ClientLoginRSAKeyPacket clientLoginRSAKeyPacket) throws NoSuchPaddingException,
@@ -44,12 +49,18 @@ public class ClientLoginPacketHandler extends PacketHandler {
         connection.sendPacket(new ServerLoginPasswordPacket(password));
     }
 
-    public void handlePasswordValidation(ClientLoginPasswordValidationPacket clientLoginPasswordValidationPacket) {
+    public void handlePasswordValidation(ClientLoginPasswordValidationPacket clientLoginPasswordValidationPacket) throws InvalidPasswordException {
         if(!clientLoginPasswordValidationPacket.isPasswordValid()) {
-            connection.disconnect(); // TODO add error to a connect future
+            connection.disconnect();
+            throw new InvalidPasswordException();
         } else {
             connection.sendPacket(new ServerLoginRequestedProtocolPacket(BismuthProtocol.getHandledProtocolByHandler(clientPacketHandler)));
+            connectFuture.complete(null);
             connection.setPacketHandler(clientPacketHandler);
         }
+    }
+
+    public CompletableFuture<Void> getConnectFuture() {
+        return connectFuture;
     }
 }

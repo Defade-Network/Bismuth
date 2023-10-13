@@ -12,6 +12,7 @@ import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.ExecutionException;
 
 abstract class BismuthClient extends PacketHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(BismuthClient.class);
@@ -31,10 +32,12 @@ abstract class BismuthClient extends PacketHandler {
         this.selector = Selector.open();
     }
 
-    public final void connect() throws IOException {
+    public final void connect() throws IOException, ExecutionException, InterruptedException {
         SocketChannel socket = SocketChannel.open(new InetSocketAddress(host, port));
         connection = new Connection(selector, socket, PacketFlow.SERVER_BOUND);
-        connection.setPacketHandler(new ClientLoginPacketHandler(this, connection, password));
+
+        ClientLoginPacketHandler clientLoginPacketHandler = new ClientLoginPacketHandler(this, connection, password);
+        connection.setPacketHandler(clientLoginPacketHandler);
 
         socket.configureBlocking(false);
         socket.socket().setTcpNoDelay(true);
@@ -62,6 +65,8 @@ abstract class BismuthClient extends PacketHandler {
                 }
             }
         });
+
+        clientLoginPacketHandler.getConnectFuture().get();
     }
 
     public final void disconnect() {

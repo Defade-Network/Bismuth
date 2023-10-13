@@ -1,5 +1,6 @@
 package net.defade.bismuth.core;
 
+import net.defade.bismuth.core.exceptions.NegativePacketSizeException;
 import net.defade.bismuth.core.packet.Packet;
 import net.defade.bismuth.core.packet.PacketFlow;
 import net.defade.bismuth.core.packet.handlers.PacketHandler;
@@ -59,8 +60,8 @@ public class Connection {
 
             short packetSize = readBuffer.getShort();
             if (packetSize < 0) {
-                disconnect(); // TODO disconnection message
-                return false;
+                disconnect();
+                LOGGER.error("Received a packet with a negative size", new NegativePacketSizeException());
             }
 
             // If we have received the whole packet
@@ -77,19 +78,21 @@ public class Connection {
                         );
                     } catch (ShortBufferException exception) {
                         LOGGER.error("Error while decrypting packet", exception);
-                        disconnect(); // TODO disconnection message
+                        disconnect();
+                        return false;
                     }
                 }
 
                 // Create the packet
-                Packet<?> packet = null;
+                Packet<?> packet;
                 int packetId = packetBuffer.get();
 
                 try {
                     packet = protocol.createPacket(packetFlow.opposite(), packetId, new BismuthByteBuffer(packetBuffer));
                 } catch (Throwable throwable) {
                     LOGGER.error("Error while deserializing packet with id " + packetId, throwable);
-                    disconnect(); // TODO disconnection message
+                    disconnect();
+                    return false;
                 }
 
                 // Handle the packet
@@ -98,6 +101,7 @@ public class Connection {
                 } catch (Throwable throwable) {
                     LOGGER.error("Error while handling packet", throwable);
                     disconnect();
+                    return false;
                 }
 
                 // Set the position to the end of the packet and clear the buffer for the next packet
@@ -144,7 +148,7 @@ public class Connection {
                 );
             } catch (ShortBufferException exception) {
                 LOGGER.error("Error while encrypting packet", exception);
-                disconnect(); // TODO disconnection message
+                disconnect();
             }
         }
 
@@ -154,7 +158,7 @@ public class Connection {
             channel.write(packetBuffer);
         } catch (IOException exception) {
             LOGGER.error("Error while writing packet", exception);
-            disconnect(); // TODO disconnection message
+            disconnect();
         }
     }
 
