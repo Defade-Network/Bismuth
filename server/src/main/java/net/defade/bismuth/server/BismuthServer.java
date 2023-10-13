@@ -5,6 +5,8 @@ import net.defade.bismuth.core.Connection;
 import net.defade.bismuth.core.packet.PacketFlow;
 import net.defade.bismuth.core.packet.handlers.PacketHandler;
 import net.defade.bismuth.core.packet.handlers.serverbound.ServerLoginPacketHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
@@ -16,6 +18,8 @@ import java.util.Map;
 import java.util.function.Function;
 
 public class BismuthServer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(BismuthServer.class);
+
     private final String host;
     private final int port;
     private final byte[] hashedPassword;
@@ -69,18 +73,16 @@ public class BismuthServer {
                                 }
                             }
                         } catch (IOException exception) {
-                            exception.printStackTrace();
+                            LOGGER.error("Error while reading channel", exception);
+
                             Connection connection = connectionMap.get((SocketChannel) selectionKey.channel());
                             if (connection != null) {
                                 connection.disconnect();
                             }
-
-                            // TODO log correctly
                         }
                     });
                 } catch (IOException exception) {
-                    exception.printStackTrace();
-                    // TODO log correctly
+                    LOGGER.error("Error while selecting", exception);
                 }
             }
         });

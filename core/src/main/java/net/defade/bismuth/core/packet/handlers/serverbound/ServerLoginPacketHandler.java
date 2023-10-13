@@ -9,6 +9,8 @@ import net.defade.bismuth.core.packet.server.login.ServerLoginAESKeyPacket;
 import net.defade.bismuth.core.packet.server.login.ServerLoginPasswordPacket;
 import net.defade.bismuth.core.packet.server.login.ServerLoginRequestedProtocolPacket;
 import net.defade.bismuth.core.utils.CryptoUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -21,6 +23,7 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 public class ServerLoginPacketHandler extends PacketHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ServerLoginPacketHandler.class);
     private static KeyPair rsaKey;
 
     private final Function<BismuthProtocol, PacketHandler> protocolToPacketHandler;
@@ -36,7 +39,7 @@ public class ServerLoginPacketHandler extends PacketHandler {
             try {
                 rsaKey = CryptoUtils.generateRSAKey();
             } catch (NoSuchAlgorithmException exception) {
-                exception.printStackTrace(); // TODO log correctly
+                LOGGER.error("Error while generating RSA key", exception);
                 connection.disconnect();
             }
         }

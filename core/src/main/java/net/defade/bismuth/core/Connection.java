@@ -4,6 +4,8 @@ import net.defade.bismuth.core.packet.Packet;
 import net.defade.bismuth.core.packet.PacketFlow;
 import net.defade.bismuth.core.packet.handlers.PacketHandler;
 import net.defade.bismuth.core.utils.CryptoUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
@@ -20,6 +22,7 @@ import java.security.NoSuchAlgorithmException;
  */
 public class Connection {
     private static final int MAX_PACKET_SIZE = Short.MAX_VALUE;
+    private static final Logger LOGGER = LoggerFactory.getLogger(Connection.class);
 
     private final Selector selector;
     private final SocketChannel channel;
@@ -50,19 +53,22 @@ public class Connection {
             return false;
         }
 
+        // If we can read the packet size (two bytes)
         while (readBuffer.position() > 2) {
             readBuffer.flip();
+
             short packetSize = readBuffer.getShort();
             if (packetSize < 0) {
-                // TODO implement disconnect message
-                disconnect();
+                disconnect(); // TODO disconnection message
                 return false;
             }
 
+            // If we have received the whole packet
             if (readBuffer.remaining() >= packetSize) {
                 ByteBuffer packetBuffer = readBuffer.slice(2, packetSize);
 
-                if (encryptionContainer != null) { // if encryption is enabled, decrypt the packet
+                // If encryption is enabled, decrypt the packet
+                if (encryptionContainer != null) {
                     try {
                         ByteBuffer bufferToDecrypt = packetBuffer.slice();
                         encryptionContainer.decrypt.update(
@@ -70,31 +76,35 @@ public class Connection {
                                 packetBuffer.duplicate()
                         );
                     } catch (ShortBufferException exception) {
-                        exception.printStackTrace(); // TODO log correctly
-                        disconnect();
+                        LOGGER.error("Error while decrypting packet", exception);
+                        disconnect(); // TODO disconnection message
                     }
                 }
 
+                // Create the packet
                 Packet<?> packet = null;
+                int packetId = packetBuffer.get();
+
                 try {
-                    packet = protocol.createPacket(packetFlow.opposite(), packetBuffer.get(), new BismuthByteBuffer(packetBuffer));
+                    packet = protocol.createPacket(packetFlow.opposite(), packetId, new BismuthByteBuffer(packetBuffer));
                 } catch (Throwable throwable) {
-                    throwable.printStackTrace(); // TODO log correctly
-                    disconnect();
+                    LOGGER.error("Error while deserializing packet with id " + packetId, throwable);
+                    disconnect(); // TODO disconnection message
                 }
 
                 // Handle the packet
                 try {
                     handlePacketGenericHack(packet, packetHandler);
                 } catch (Throwable throwable) {
-                    throwable.printStackTrace();
-                    // TODO log correctly
+                    LOGGER.error("Error while handling packet", throwable);
                     disconnect();
                 }
 
+                // Set the position to the end of the packet and clear the buffer for the next packet
                 readBuffer.position(packetSize);
                 readBuffer.compact();
             } else {
+                // If we don't have the whole packet, reset the position to the beginning of the packet
                 readBuffer.position(readBuffer.limit());
                 break;
             }
@@ -111,12 +121,14 @@ public class Connection {
         ByteBuffer packetBuffer = ByteBuffer.allocateDirect(MAX_PACKET_SIZE);
         packetBuffer.putShort((short) 0); // Packet size, it will be overwritten later as we don't know the size yet
 
+        // Write the packet id
         Integer packetId = protocol.getPacketId(packetFlow, packet);
         if(packetId == null) {
             throw new IllegalArgumentException("Packet " + packet.getClass().getSimpleName() + " is not registered for protocol " + protocol.name());
         }
         packetBuffer.put(packetId.byteValue());
 
+        // Write the packet
         packet.write(new BismuthByteBuffer(packetBuffer));
         // Overwrite the packet size
         packetBuffer.putShort(0, (short) (packetBuffer.position() - 2)); // We don't include the two bytes for
@@ -131,8 +143,8 @@ public class Connection {
                         packetBuffer.duplicate()
                 );
             } catch (ShortBufferException exception) {
-                exception.printStackTrace(); // TODO log correctly
-                disconnect();
+                LOGGER.error("Error while encrypting packet", exception);
+                disconnect(); // TODO disconnection message
             }
         }
 
@@ -141,8 +153,8 @@ public class Connection {
         try {
             channel.write(packetBuffer);
         } catch (IOException exception) {
-            exception.printStackTrace();
-            // TODO log correctly
+            LOGGER.error("Error while writing packet", exception);
+            disconnect(); // TODO disconnection message
         }
     }
 
