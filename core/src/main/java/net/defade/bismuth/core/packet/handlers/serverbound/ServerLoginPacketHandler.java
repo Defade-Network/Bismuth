@@ -22,7 +22,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.function.Function;
 
-public class ServerLoginPacketHandler extends PacketHandler {
+public class ServerLoginPacketHandler implements PacketHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(ServerLoginPacketHandler.class);
     private static KeyPair rsaKey;
 

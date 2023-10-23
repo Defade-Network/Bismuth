@@ -106,7 +106,7 @@ public class BismuthServer {
      */
     private Function<BismuthProtocol, PacketHandler> packetHandlerProviderToFunction() {
         return protocol -> switch (protocol) {
-            case YOKURA -> packetHandlerProvider.getYokuraPacketHandler();
+            case RHENIUM -> packetHandlerProvider.getRheniumPacketHandler();
 
             default -> {
                 throw new IllegalStateException("Unexpected value: " + protocol);

@@ -14,7 +14,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.ExecutionException;
 
-abstract class BismuthClient extends PacketHandler {
+abstract class BismuthClient implements PacketHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(BismuthClient.class);
     private final String host;
     private final int port;
@@ -75,7 +75,7 @@ abstract class BismuthClient extends PacketHandler {
         }
     }
 
-    public void sendPacket(Packet<?> packet) {
+    public final void sendPacket(Packet<?> packet) {
         if(connection == null) {
             throw new IllegalStateException("Cannot send a packet when not connected");
         }

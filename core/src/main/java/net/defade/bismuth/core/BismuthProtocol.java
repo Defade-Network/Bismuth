@@ -7,7 +7,9 @@ import net.defade.bismuth.core.packet.client.login.ClientLoginPasswordValidation
 import net.defade.bismuth.core.packet.client.login.ClientLoginRSAKeyPacket;
 import net.defade.bismuth.core.packet.handlers.PacketHandler;
 import net.defade.bismuth.core.packet.handlers.clientbound.ClientLoginPacketHandler;
+import net.defade.bismuth.core.packet.handlers.clientbound.ClientRheniumPacketHandler;
 import net.defade.bismuth.core.packet.handlers.serverbound.ServerLoginPacketHandler;
+import net.defade.bismuth.core.packet.handlers.serverbound.ServerRheniumPacketHandler;
 import net.defade.bismuth.core.packet.server.login.ServerLoginAESKeyPacket;
 import net.defade.bismuth.core.packet.server.login.ServerLoginPasswordPacket;
 import net.defade.bismuth.core.packet.server.login.ServerLoginRequestedProtocolPacket;
@@ -26,8 +28,13 @@ public enum BismuthProtocol {
                     .addPacket(ServerLoginRequestedProtocolPacket.class, ServerLoginRequestedProtocolPacket::new)
             )
     ),
-    YOKURA(protocol()
+    RHENIUM(protocol()
+            .addFlow(PacketFlow.CLIENT_BOUND, new PacketSet<>(ClientRheniumPacketHandler.class)
 
+            )
+            .addFlow(PacketFlow.SERVER_BOUND, new PacketSet<>(ServerRheniumPacketHandler.class)
+
+            )
     );
 
     private final Map<PacketFlow, PacketSet<?>> packets;

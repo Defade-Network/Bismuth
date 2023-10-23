@@ -1,9 +1,13 @@
 package net.defade.bismuth.core.packet.handlers;
 
-public abstract class PacketHandler {
-    public void onActivate() {
+public interface PacketHandler {
+    /**
+     * Called when the connection is established and ready
+     */
+    void onActivate();
 
-    }
-
-    public abstract void onDisconnect();
+    /**
+     * Called when the connection is closed.
+     */
+    void onDisconnect();
 }

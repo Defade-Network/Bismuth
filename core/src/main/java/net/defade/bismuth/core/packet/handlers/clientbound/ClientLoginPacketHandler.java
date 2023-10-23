@@ -19,7 +19,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.CompletableFuture;
 
-public class ClientLoginPacketHandler extends PacketHandler {
+public class ClientLoginPacketHandler implements PacketHandler {
     private final CompletableFuture<Void> connectFuture = new CompletableFuture<>();
 
     private final PacketHandler clientPacketHandler;
@@ -30,6 +30,11 @@ public class ClientLoginPacketHandler extends PacketHandler {
         this.connection = connection;
         this.password = password;
         this.clientPacketHandler = clientPacketHandler;
+    }
+
+    @Override
+    public void onActivate() {
+        // We do nothing. The server is the first one to send a packet.
     }
 
     @Override
