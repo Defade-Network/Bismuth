@@ -16,23 +16,16 @@ import java.util.concurrent.ExecutionException;
 
 abstract class BismuthClient implements PacketHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(BismuthClient.class);
-    private final String host;
-    private final int port;
-    private final byte[] password;
 
     private final Selector selector;
 
     private Connection connection;
 
-    public BismuthClient(String host, int port, byte[] password) throws IOException {
-        this.host = host;
-        this.port = port;
-        this.password = password;
-
+    public BismuthClient() throws IOException {
         this.selector = Selector.open();
     }
 
-    public final void connect() throws IOException, ExecutionException, InterruptedException {
+    public final void connect(String host, int port, byte[] password) throws IOException, ExecutionException, InterruptedException {
         SocketChannel socket = SocketChannel.open(new InetSocketAddress(host, port));
         connection = new Connection(selector, socket, PacketFlow.SERVER_BOUND);
 
