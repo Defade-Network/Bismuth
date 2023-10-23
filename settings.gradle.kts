@@ -1,5 +1,11 @@
-rootProject.name = "Bismuth"
+rootProject.name = "bismuth"
 
-include("core")
-include("server")
-include("client")
+sequenceOf(
+    "core",
+    "server",
+    "client",
+).forEach {
+    val project = ":bismuth-$it"
+    include(project)
+    project(project).projectDir = file(it)
+}
