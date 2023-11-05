@@ -18,6 +18,14 @@ public class BismuthByteBuffer {
         this.byteBuffer = byteBuffer;
     }
 
+    public String getString() {
+        return new String(getByteArray());
+    }
+
+    public void putString(String string) {
+        putByteArray(string.getBytes());
+    }
+
     public byte[] getByteArray() {
         short length = getShort();
         byte[] bytes = new byte[length];
@@ -337,6 +345,10 @@ public class BismuthByteBuffer {
 
     public boolean isReadOnly() {
         return byteBuffer.isReadOnly();
+    }
+
+    public ByteBuffer getBackingByteBuffer() {
+        return byteBuffer;
     }
 
     @Override

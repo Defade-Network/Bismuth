@@ -1,7 +1,9 @@
 package net.defade.bismuth.core.packet.handlers.serverbound;
 
+import net.defade.bismuth.core.BismuthByteBuffer;
 import net.defade.bismuth.core.BismuthProtocol;
 import net.defade.bismuth.core.Connection;
+import net.defade.bismuth.core.packet.client.login.ClientLoginInfosPacket;
 import net.defade.bismuth.core.packet.client.login.ClientLoginPasswordValidationPacket;
 import net.defade.bismuth.core.packet.client.login.ClientLoginRSAKeyPacket;
 import net.defade.bismuth.core.packet.handlers.PacketHandler;
@@ -16,6 +18,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
@@ -26,11 +29,11 @@ public class ServerLoginPacketHandler implements PacketHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(ServerLoginPacketHandler.class);
     private static KeyPair rsaKey;
 
-    private final Function<BismuthProtocol, PacketHandler> protocolToPacketHandler;
+    private final Function<BismuthProtocol, ServerPacketHandler> protocolToPacketHandler;
     private final Connection connection;
     private final byte[] hashedPassword;
 
-    public ServerLoginPacketHandler(Function<BismuthProtocol, PacketHandler> protocolToPacketHandler, Connection connection, byte[] hashedPassword) {
+    public ServerLoginPacketHandler(Function<BismuthProtocol, ServerPacketHandler> protocolToPacketHandler, Connection connection, byte[] hashedPassword) {
         this.protocolToPacketHandler = protocolToPacketHandler;
         this.connection = connection;
         this.hashedPassword = hashedPassword;
@@ -75,7 +78,13 @@ public class ServerLoginPacketHandler implements PacketHandler {
     }
 
     public void handleRequestedProtocol(ServerLoginRequestedProtocolPacket serverLoginRequestedProtocolPacket) {
-        PacketHandler packetHandler = protocolToPacketHandler.apply(serverLoginRequestedProtocolPacket.requestedProtocol());
+        ServerPacketHandler packetHandler = protocolToPacketHandler.apply(serverLoginRequestedProtocolPacket.requestedProtocol());
+
+        BismuthByteBuffer clientInfos = new BismuthByteBuffer(ByteBuffer.allocateDirect(4096)); // 4kb should be more than enough
+        packetHandler.writeInfos(clientInfos);
+        connection.sendPacket(new ClientLoginInfosPacket(clientInfos));
+
+        packetHandler.setConnection(connection);
         connection.setPacketHandler(packetHandler);
     }
 }

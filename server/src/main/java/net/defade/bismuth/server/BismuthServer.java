@@ -3,8 +3,8 @@ package net.defade.bismuth.server;
 import net.defade.bismuth.core.BismuthProtocol;
 import net.defade.bismuth.core.Connection;
 import net.defade.bismuth.core.packet.PacketFlow;
-import net.defade.bismuth.core.packet.handlers.PacketHandler;
 import net.defade.bismuth.core.packet.handlers.serverbound.ServerLoginPacketHandler;
+import net.defade.bismuth.core.packet.handlers.serverbound.ServerPacketHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
@@ -104,9 +104,9 @@ public class BismuthServer {
      * so users don't have to handle the LOGIN protocol or forget a protocol.
      * @return A function to get a packet handler for the protocol
      */
-    private Function<BismuthProtocol, PacketHandler> packetHandlerProviderToFunction() {
+    private Function<BismuthProtocol, ServerPacketHandler> packetHandlerProviderToFunction() {
         return protocol -> switch (protocol) {
-            case RHENIUM -> packetHandlerProvider.getRheniumPacketHandler();
+            case MINESTOM -> packetHandlerProvider.getMinestomPacketHandler();
 
             default -> {
                 throw new IllegalStateException("Unexpected value: " + protocol);

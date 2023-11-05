@@ -5,14 +5,16 @@ import net.defade.bismuth.core.packet.PacketFlow;
 import net.defade.bismuth.core.packet.PacketSet;
 import net.defade.bismuth.core.packet.client.login.ClientLoginPasswordValidationPacket;
 import net.defade.bismuth.core.packet.client.login.ClientLoginRSAKeyPacket;
+import net.defade.bismuth.core.packet.client.minestom.ClientMinestomVelocityForwardKeyPacket;
 import net.defade.bismuth.core.packet.handlers.PacketHandler;
 import net.defade.bismuth.core.packet.handlers.clientbound.ClientLoginPacketHandler;
-import net.defade.bismuth.core.packet.handlers.clientbound.ClientRheniumPacketHandler;
+import net.defade.bismuth.core.packet.handlers.clientbound.ClientMinestomPacketHandler;
 import net.defade.bismuth.core.packet.handlers.serverbound.ServerLoginPacketHandler;
-import net.defade.bismuth.core.packet.handlers.serverbound.ServerRheniumPacketHandler;
+import net.defade.bismuth.core.packet.handlers.serverbound.ServerMinestomPacketHandler;
 import net.defade.bismuth.core.packet.server.login.ServerLoginAESKeyPacket;
 import net.defade.bismuth.core.packet.server.login.ServerLoginPasswordPacket;
 import net.defade.bismuth.core.packet.server.login.ServerLoginRequestedProtocolPacket;
+import net.defade.bismuth.core.packet.server.minestom.ServerMinestomAllowPlayersPacket;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,12 +30,12 @@ public enum BismuthProtocol {
                     .addPacket(ServerLoginRequestedProtocolPacket.class, ServerLoginRequestedProtocolPacket::new)
             )
     ),
-    RHENIUM(protocol()
-            .addFlow(PacketFlow.CLIENT_BOUND, new PacketSet<>(ClientRheniumPacketHandler.class)
-
+    MINESTOM(protocol()
+            .addFlow(PacketFlow.CLIENT_BOUND, new PacketSet<>(ClientMinestomPacketHandler.class)
+                    .addPacket(ClientMinestomVelocityForwardKeyPacket.class, ClientMinestomVelocityForwardKeyPacket::new)
             )
-            .addFlow(PacketFlow.SERVER_BOUND, new PacketSet<>(ServerRheniumPacketHandler.class)
-
+            .addFlow(PacketFlow.SERVER_BOUND, new PacketSet<>(ServerMinestomPacketHandler.class)
+                    .addPacket(ServerMinestomAllowPlayersPacket.class, ServerMinestomAllowPlayersPacket::new)
             )
     );
 

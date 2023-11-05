@@ -5,9 +5,9 @@ import net.defade.bismuth.core.BismuthProtocol;
 import net.defade.bismuth.core.packet.Packet;
 import net.defade.bismuth.core.packet.handlers.serverbound.ServerLoginPacketHandler;
 
-public record ServerLoginRequestedProtocolPacket(BismuthProtocol requestedProtocol) implements Packet<ServerLoginPacketHandler> {
+public record ServerLoginRequestedProtocolPacket(BismuthProtocol requestedProtocol, BismuthByteBuffer clientInfos) implements Packet<ServerLoginPacketHandler> {
     public ServerLoginRequestedProtocolPacket(BismuthByteBuffer buffer) {
-        this(BismuthProtocol.values()[buffer.get()]);
+        this(BismuthProtocol.values()[buffer.get()], buffer);
     }
 
     @Override

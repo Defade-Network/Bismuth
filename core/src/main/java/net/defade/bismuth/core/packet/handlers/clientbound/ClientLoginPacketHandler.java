@@ -1,9 +1,11 @@
 package net.defade.bismuth.core.packet.handlers.clientbound;
 
+import net.defade.bismuth.core.BismuthByteBuffer;
 import net.defade.bismuth.core.BismuthProtocol;
 import net.defade.bismuth.core.Connection;
 import net.defade.bismuth.core.exceptions.DisconnectException;
 import net.defade.bismuth.core.exceptions.InvalidPasswordException;
+import net.defade.bismuth.core.packet.client.login.ClientLoginInfosPacket;
 import net.defade.bismuth.core.packet.client.login.ClientLoginPasswordValidationPacket;
 import net.defade.bismuth.core.packet.client.login.ClientLoginRSAKeyPacket;
 import net.defade.bismuth.core.packet.handlers.PacketHandler;
@@ -15,6 +17,7 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.CompletableFuture;
@@ -59,10 +62,17 @@ public class ClientLoginPacketHandler implements PacketHandler {
             connection.disconnect();
             throw new InvalidPasswordException();
         } else {
-            connection.sendPacket(new ServerLoginRequestedProtocolPacket(BismuthProtocol.getHandledProtocolByHandler(clientPacketHandler)));
+            BismuthByteBuffer clientInfos = new BismuthByteBuffer(ByteBuffer.allocateDirect(4096)); // 4kb should be more than enough
+            clientPacketHandler.writeInfos(clientInfos);
+
+            connection.sendPacket(new ServerLoginRequestedProtocolPacket(BismuthProtocol.getHandledProtocolByHandler(clientPacketHandler), clientInfos));
             connectFuture.complete(null);
-            connection.setPacketHandler(clientPacketHandler);
         }
+    }
+
+    public void handleInfos(ClientLoginInfosPacket clientLoginInfosPacket) {
+        clientPacketHandler.handleInfos(clientLoginInfosPacket.infos());
+        connection.setPacketHandler(clientPacketHandler);
     }
 
     public CompletableFuture<Void> getConnectFuture() {
